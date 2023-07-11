@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+version = "0.0.1" 
+name = "extract_dailymed_spl"
+description = "Extract DailyMed SPL"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["DailyMed"]
+license = {file = "LICENSE.txt"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "requests",
+]
