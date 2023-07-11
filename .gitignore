@@ -3,3 +3,8 @@ consolidation/
 
 result.csv
 debug.txt
+
+.venv/
+venv/
+
+.DStore
