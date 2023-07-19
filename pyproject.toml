@@ -14,5 +14,18 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
+    "os",
+    "sys",
+    "date",
+    "time",
+    "argparse",
+    "json",
+    "yaml",
+    "csv",
     "requests",
+    "shutil",
+    "zipfile",
+    "hashlib",
+    "lxml",
+    "bs4"
 ]
