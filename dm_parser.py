@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 import requests
+import gzip
 import csv
 import json
 import yaml
@@ -12,6 +13,13 @@ import shutil
 import zipfile
 import hashlib
 from bs4 import BeautifulSoup
+from FileMetadata import FileMetadata
+
+def constructor(loader, node) :
+    fields = loader.construct_mapping(node)
+    return FileMetadata(**fields)
+yaml.add_constructor('!FileMetadata', constructor)
+
 
 def progressbar(it, prefix="", size=60, out=sys.stdout): 
     """ 
@@ -46,74 +54,62 @@ def getCurrentDate():
 	"""
 	return date.today().strftime("%Y-%m-%d")
 
-class FileMetadata:
+
+		
+
+def getMetadataFromFile(filepath:str) -> dict[str,FileMetadata]:
 	"""
-	The class of file metadata.
+	Retrieves a metadata file at the specified filepath
 
-	Attributes:
-		title (str): A title for the file
-		filename (str): The name of the file
-		path (str): The full path of the file in the filesystem.
-		md5 (str): An MD5 hash of the file
-		dateCreated (str): The date of when the file was created.
-		dateModified (str): The date of when the file was last modified.
-		originUrl (str): The web location of the original file.
-		etag (str): The eTag for the web location of the file.
-		originOrg (str): The agent responsible for providing the source file.
-		script (str): The name of the program that created the file.
-
+	Args
+		filepath:str The metadata file in yaml format to read
+	
+	Returns
+		dict[str,FileMetadata]: A dictionary containing filenames and their metadata
 	"""
-	title = ""
-	filename = ""
-	path = ""
-	md5 = ""
-	dateCreated = ""
-	dateModified = ""
-	originUrl = ""
-	etag = ""
-	originOrg = ""
-	script = ""
-
-	def __init__(self, title, filename,path, md5, dateCreated, dateModified, originUrl, etag, originOrg, script):
-		"""
-		Initialize a new instance of the FileMetadata Class/
-
-		Args:
-			title (str): A title for the file
-			filename (str): The name of the file
-			path (str): The full path of the file in the filesystem.
-			md5 (str): An MD5 hash of the file
-			dateCreated (str): The date of when the file was created.
-			dateModified (str): The date of when the file was last modified.
-			originUrl (str): The web location of the original file.
-			etag (str): The eTag for the web location of the file.
-			originOrg (str): The agent responsible for providing the source file.
-			script (str): The name of the program that created the file.
-		"""
-		self.title = title
-		self.filename = filename
-		self.path = path
-		self.md5 = md5
-		self.dateCreated = dateCreated
-		self.dateModified = dateModified
-		self.originUrl = originUrl
-		self.etag = etag
-		self.originOrg = originOrg
-		self.script = script
-
-
-def getFilesMetadata():
-	working_dir = args.working_dir
-	download_dir = f'{working_dir}/download'
-	all_files_metadata_filename = f'{download_dir}/files.meta.yaml'
+	
 	try:
-		f = open(all_files_metadata_filename,'r')
+		f = open(filepath,'r')
 		with f:
-			all_files_metadata = yaml.load(f, Loader=SafeLoader)
+			return yaml.load(f, Loader=SafeLoader)
 	except OSError:
-		print (f'Unable to open/read {all_files_metadata_filename}')
-		all_files_metadata = {}
-	return all_files_metadata
+		print (f'Unable to open/read {filepath}')
+	return None
+
+
+def addEntryToMetadataFile(directory_path:str, filename:str, metadata:FileMetadata, metadata_filename:str = 'files.metadata.yaml') -> dict[str, FileMetadata]:
+	"""
+	Adds a file and its metadata to a file-based regisry of file metadata
+
+	Args:
+		directory_path:str The path to the folder to read/write a metadata file
+		filename:str The name of the file for which there is metadata
+		metadata:FileMetadata The metadata object
+		metadata_filename:str The name of the metadata file
+	
+	Returns:
+		The dictionary for which the metadata object was added to
+	
+	"""
+	metadata_filename = f'{directory_path}/{metadata_filename}'
+	try:
+		f = open(metadata_filename,'r')
+		with f:
+			#metadata_dict = yaml.load(f, Loader=SafeLoader)
+			metadata_dict = yaml.full_load(f)
+
+	except OSError:
+		print (f'Unable to open/read {metadata_filename}')
+		metadata_dict = {}
+
+	metadata_dict[filename] = metadata
+	try:
+		with open(metadata_filename,'w') as f:
+			yaml.dump(metadata_dict, f, default_flow_style=False)
+	except OSError:
+		print (f'Unable to write to {metadata_filename}')
+	return 	metadata_dict
+
 
 def makeFileList():
 	"""Generate a list of files to process. Parses command line argument (--files) or generates from preset Dailymed file names.
@@ -167,10 +163,10 @@ def getPaths():
 	os.makedirs(dirs['result_dir'], exist_ok=True)
 	# we don't create dated download dir until we need it.
 
-	dirs['download_metadata'] = f'{args.working_dir}/download/files.meta.yaml'
+	dirs['download_metadata_filename'] = f'{args.working_dir}/download/files.meta.yaml'
 	return dirs
 
-def checkFiles(files: dict[str, FileMetadata] -> dict[str, FileMetadata]):
+def checkFiles(files: dict[str, FileMetadata]) -> dict[str, FileMetadata]:
 	"""
 	A function to check whether there is existing metadata in the specified directory, and if so, return the input dict with the read object.
 
@@ -178,20 +174,11 @@ def checkFiles(files: dict[str, FileMetadata] -> dict[str, FileMetadata]):
 		files: (Dict[str, FileMetadata]) : A dictionary with filename as string key and FileMetadata values
 
 	Return:
-		Dict[str, FileMetadata]: A dictionary with filename as string key and FileMetadata values
+		Dict[str, FileMetadata]: A dictionary with filenames as string key and FileMetadata as values
 	"""
 	args = argParser.parse_args()
 	paths = getPaths()
-
-	#  check for file metadata in download folder
-	download_folder_metadata_filename = paths['download_metadata']
-	if(os.path.exists(download_folder_metadata_filename) == True):
-		try:
-			f = open(download_folder_metadata_filename,'r')
-			with f:
-				all_files = yaml.load(f, Loader=SafeLoader)
-		except OSError:
-			print (f'Unable to open/read {download_folder_metadata_filename}')
+	download_metadata = getMetadataFromFile(paths['download_metadata_filename'])
 	
 	for filename in files:
 		# check in dated folder first
@@ -200,10 +187,12 @@ def checkFiles(files: dict[str, FileMetadata] -> dict[str, FileMetadata]):
 			try:
 				f = open(file_metadata_filename,'r')
 				with f:
-					file_metadata = yaml.load(f, Loader=SafeLoader)
+					#file_metadata = yaml.load(f, Loader=SafeLoader)
+					all_files_metadata = yaml.full_load(f)
+					file_metadata = all_files_metadata[filename]
 
 					# check that the file actually exists.
-					if os.path.exists(file_metadata['location']):
+					if os.path.exists(file_metadata.filepath):
 						files[filename] = file_metadata
 					else:
 						print(f'Found metadata for {filename}, but file does not exist!')
@@ -213,10 +202,10 @@ def checkFiles(files: dict[str, FileMetadata] -> dict[str, FileMetadata]):
 				continue
 		
 		# check the metadata in the download folder			
-		elif filename in all_files:
+		elif download_metadata != None and filename in download_metadata:
 			# check that the file actually exists.
-			file_metadata = all_files[filename]
-			if os.path.exists(file_metadata['location']):
+			file_metadata = download_metadata[filename]
+			if os.path.exists(file_metadata.filepath):
 				files[filename] = file_metadata
 			else:
 				print(f'Found metadata for {filename}, but file does not exist!')
@@ -224,30 +213,38 @@ def checkFiles(files: dict[str, FileMetadata] -> dict[str, FileMetadata]):
 			print(f'No metadata found for {filename}')
 	return files
 
-def computeMD5Hash(file_name):
+def computeMD5Hash(filepath: str):
 	""" 
 	Open,close, read file and calculate MD5 on its contents 
 
 	Args:
-		file_name (str): The name of the file to compute the hash.
+		filepath (str): The full path to the file to compute the hash.
 
 	Return:
-		str: 
+		str: The MD5 hash
 	"""
-	with open(file_name, 'rb') as file_to_check:
-		# read contents of the file
-		data = file_to_check.read()    
-		# pipe contents of the file through
-		md5_returned = hashlib.md5(data).hexdigest()
+	with open(filepath, 'rb') as f:
+		md5_returned = hashlib.md5(f.read()).hexdigest()
 		return md5_returned
 
-# Download the release files _if_ 1) they don't already exist or 2) we force re-download
-def download(files):
-	
+
+def download(files: dict[str, FileMetadata]) -> dict[str, FileMetadata]:
+	"""
+	Download the Dailymed release files.
+	 
+	Download the Dailymed release files if 1) they don't already exist or 2) we force re-download
+
+	Args:
+		files: a dictionary comprised of filename and their FileMetadata 
+
+	Return:
+		dict[str, FileMetadata] Updated files and their metadata
+	"""
 	paths = getPaths()
 
 	for filename in files:
 		file_metadata = files[filename]
+		download_dir = paths['download_dir']
 		dated_download_dir = paths['dated_download_dir']		
 		local_file_path = f'{dated_download_dir}/{filename}'
 		meta_file = f'{dated_download_dir}/{filename}.meta.yaml'
@@ -258,13 +255,13 @@ def download(files):
 		remote_etag = response.headers["ETag"].strip('"')
 
 		# check whether we have downloaded this previously
-		if remote_etag == file_metadata['etag']:
+		if remote_etag == file_metadata.etag:
 			# we already have this file
 			print(f'Most recent eTag of {filename} is same as remote version')
 			if args.force == True:
 				print(f'Forcing download as commanded')
 			else:
-				if file_metadata['location'] != '':
+				if file_metadata.filepath != '':
 					print(f'Skipping download of {filename}')
 					continue
 				else:
@@ -280,36 +277,24 @@ def download(files):
 		#		shutil.copyfileobj(r.raw, f)
 	    
 		# create file metadata
-		meta = FileMetadata()
-		meta.filename = filename
-		meta.etag = remote_etag
-		meta.location = local_file_path
-		meta.date = getCurrentDate()
-		meta.download_url = url
-		meta.data_source = data_source
-		meta.source_file = os.path.basename(__file__)
-		meta.md5 = computeMD5Hash(filename)
+		metadata = FileMetadata()
+		metadata.filename = filename
+		metadata.etag = remote_etag
+		metadata.filepath = local_file_path
+		metadata.dateCreated = getCurrentDate()
+		metadata.originUrl = url
+		metadata.originOrg = data_source
+		metadata.script = os.path.basename(__file__)
+		#metadata.md5 = computeMD5Hash(local_file_path)
 		
+		files[filename] = metadata
+
 		# add to the file-specific metadata to the download folder
-		metadata_filename = f'{dated_download_dir}/{filename}.meta.yaml'
-		with open(metadata_filename,"w") as f:
-			yaml.dump(meta, f, default_flow_style=False)	
+		addEntryToMetadataFile(dated_download_dir, filename, metadata, f'{filename}.meta.yaml')
 
 		# add to the metadata for all files in the download folder
-		folder_metadata_file = f'{dated_download_dir}/files.meta.yaml'
-		try:
-			f = open(folder_metadata_file,'r')
-			with f:
-				folder_metadata = yaml.load(f, Loader=SafeLoader)
-		except OSError:
-			print (f'Unable to open/read {folder_metadata_file}')
-			folder_metadata = {}
-		folder_metadata[filename] = meta
-		with open(folder_metadata_file,"w") as f:
-			yaml.dump(folder_metadata, f, default_flow_style=False)
-
-	else:
-		print(f'Using existing {local_file_path} ')
+		addEntryToMetadataFile(download_dir, filename, metadata)
+	return files
 
 # Each release zip file contains a set of SPL specific zip files. Each SPL contains one xml file. 
 # This function will extract all XML files to the extraction directory
@@ -324,7 +309,7 @@ def extract(files):
 	
 	for filename in files:
 		meta = files[filename]
-		zip_file_path = meta['location']
+		zip_file_path = meta.filepath
 		with zipfile.ZipFile(zip_file_path, 'r') as zf:
 			print(f'Processing {filename}')
 			n_package_files += 1
@@ -337,8 +322,12 @@ def extract(files):
 						with zipfile.ZipFile(f2, 'r') as zf2:
 							for f3 in zf2.namelist():
 								if f3.endswith('.xml'):
-									xml_file_path = os.path.join(extraction_dir, f3)
-									zf2.extract(f3, xml_file_path)
+
+									#zf2.extract(f3, extraction_dir)
+									xml_fp = zf2.open(f3)
+									with gzip.open(f'{extraction_dir}/{f3}.gz', 'wb') as gz_fp:
+										gz_fp.write(xml_fp.read())
+
 									n_xml_files += 1
 
 	print("Number of package zip file(s): " + str(n_package_files))
@@ -355,9 +344,9 @@ def process():
 	files= os.listdir(extraction_dir)
 	for i in progressbar(range(len(files)), "Computing: ", 40):
 		file = files[i]
-		path = f'{extraction_dir}/{file}/{file}'
+		path = f'{extraction_dir}/{file}'
 
-		with open(path, 'r') as f:
+		with gzip.open(path, 'rb') as f:
 			xml_string = f.read() 
 			soup = BeautifulSoup(xml_string, 'xml')
 
@@ -370,14 +359,13 @@ def process():
 				for code in section.find_all('code', attrs = {'code':'34067-9'}):
 					indication = ' '.join(section.text.split())
 					row = {'set_id': set_id, 'xml_id': xml_id, 'version_number': version_number, 'indication': indication}
-					hash = hash(row) 
-					if hash not in hashes: # do not include duplicates
+					myhash = hash(yaml.dump(row)) 
+					if myhash not in hashes: # do not include duplicates
 						indications.append(row)
 						hashes[hash] = True
 			
 			# [^.]*\b(treatment|abnormal)\b[^.]*\.
 			#if i == 2: break
-	
 	
 	# Creating a csv dict writer object
 	with open(f'{result_dir}/indications.csv', 'w') as csvfile:	
