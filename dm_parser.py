@@ -45,6 +45,9 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):
         show(i+1)
     print("\n", flush=True, file=out)
 
+def getScriptName():
+	return os.path.basename(__file__)
+
 def getCurrentDate():
 	"""
 	Get the current date in YYYY-MM-DD format.
@@ -284,8 +287,8 @@ def download(files: dict[str, FileMetadata]) -> dict[str, FileMetadata]:
 		metadata.dateCreated = getCurrentDate()
 		metadata.originUrl = url
 		metadata.originOrg = data_source
-		metadata.script = os.path.basename(__file__)
-		#metadata.md5 = computeMD5Hash(local_file_path)
+		metadata.script = getScriptName()
+		metadata.md5 = computeMD5Hash(local_file_path)
 		
 		files[filename] = metadata
 
@@ -306,6 +309,7 @@ def extract(files):
 	n_package_files = 0
 	n_zip_files = 0
 	n_xml_files = 0
+	xml_files = {}
 	
 	for filename in files:
 		meta = files[filename]
@@ -313,38 +317,64 @@ def extract(files):
 		with zipfile.ZipFile(zip_file_path, 'r') as zf:
 			print(f'Processing {filename}')
 			n_package_files += 1
-			for f in zf.namelist():
+			for f in progressbar(zf.namelist(), "Extracting: ", 40):
+
 				# if zip file, then open and extract xml file
 				if f.endswith(".zip"):
 					with zf.open(f) as f2:
 						n_zip_files += 1
 
 						with zipfile.ZipFile(f2, 'r') as zf2:
+							xml_file_counter = 0
 							for f3 in zf2.namelist():
 								if f3.endswith('.xml'):
 
 									#zf2.extract(f3, extraction_dir)
 									xml_fp = zf2.open(f3)
-									with gzip.open(f'{extraction_dir}/{f3}.gz', 'wb') as gz_fp:
+									gz_xml_filepath = f'{extraction_dir}/{f3}.gz'
+									with gzip.open(gz_xml_filepath, 'wb') as gz_fp:
 										gz_fp.write(xml_fp.read())
 
+										xml_metadata = FileMetadata(
+												filename=f'{f3}.gz', 
+												filepath=gz_xml_filepath, 
+												dateCreated = getCurrentDate,
+												md5=computeMD5Hash(gz_xml_filepath),
+												script = getScriptName()
+										)
+
+										xml_files[gz_xml_filepath] = xml_metadata
+
 									n_xml_files += 1
+
+									xml_file_counter += 1
+									if xml_file_counter > 1:
+										print(f'Found {xml_file_counter} xml files for {f}')
 
 	print("Number of package zip file(s): " + str(n_package_files))
 	print("Number of extracted zip file(s): " + str(n_zip_files))
 	print("Number of extracted xml file(s): " + str(n_xml_files))
+	return xml_files
 
-def process():
+def process(xml_files):
 	paths = getPaths()
 	extraction_dir = paths['extraction_dir']
 	result_dir = paths['result_dir']	
 	
 	hashes = {}
+	files = {}
 	indications = []
-	files= os.listdir(extraction_dir)
-	for i in progressbar(range(len(files)), "Computing: ", 40):
-		file = files[i]
-		path = f'{extraction_dir}/{file}'
+	if len(xml_files) == 0:
+		for xml_file in os.listdir(extraction_dir):
+			metadata = FileMetadata(filename=xml_file, filepath=f'{extraction_dir}/{xml_file}')
+			files[xml_file] = metadata
+	else:
+		files = xml_files
+
+	for file in progressbar(files, "Processing: ", 40):
+		metadata = files[file]
+		#path = f'{extraction_dir}/{file}'
+		path = metadata.filepath
 
 		with gzip.open(path, 'rb') as f:
 			xml_string = f.read() 
@@ -395,13 +425,14 @@ if __name__ == "__main__":
 	files = checkFiles(makeFileList())
 
 	if(args.download == True):
-		download(files)
+		zip_files = download(files)
 
+	xml_files = {}
 	if (args.extract == True):
-		extract(files)
+		xml_files = extract(zip_files)
 
 	if(args.process == True):
-		process()
+		process(xml_files)
 	
 	executionTime = (time.time() - startTime)
 	print(f'Execution time: {executionTime} seconds')
