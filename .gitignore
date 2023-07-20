@@ -1,4 +1,5 @@
 data/
+tmp/
 
 result.csv
 debug.txt

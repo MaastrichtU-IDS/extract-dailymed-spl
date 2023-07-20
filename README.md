@@ -19,10 +19,10 @@ pip install -e .
 
 ## Run
 
-With hatch 
+With hatch
 
 ```bash
-hatch run python dm
+hatch run python dm_parser.py
 ```
 
 Without hatch
