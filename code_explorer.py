@@ -8,6 +8,7 @@ from collections import defaultdict
 class CodeInfo:
     def __init__(self):
         self.display_name = ""
+        self.term_dist = defaultdict(int)
         self.total_occurrences = 0
         self.matching_occurrences = 0
 
@@ -16,19 +17,7 @@ class CodeInfo:
 
     def increment_matching(self):
         self.matching_occurrences += 1
-
-    def set_display_name(self, display_name):
-        self.display_name = display_name
-
-    def get_display_name(self):
-        return self.display_name
     
-    def get_total_occurrences(self):
-        return self.total_occurrences
-
-    def get_matching_occurrences(self):
-        return self.matching_occurrences
-
 def generate_sentence_regex(terms):
     # Construct the regex pattern. Join the escaped terms using the pipe (|) operator for alternation 
     escaped_terms = [re.escape(term) for term in terms]
@@ -52,13 +41,11 @@ def explore(xmlfile, terms, code_dict, term_dict):
 
         # Initialize the code if not created yet
         code_info = code_dict[code]
-        if code_info.get_total_occurrences() == 0:
+        if code_info.total_occurrences == 0:
             code_info.display_name = code_tag.attrib.get('displayName')
 
         has_matching = False
         for text in section.itertext():
-            #? Do we need to strip the text 
-
             # Find all matches in the text content using regex
             matches = re.findall(regex_pattern, text)
             if matches:
@@ -67,6 +54,7 @@ def explore(xmlfile, terms, code_dict, term_dict):
             # Increase the occurrences in the term_dict for each match
             for match in matches:
                 term_dict[match] += 1
+                code_dict[code].term_dist[match] += 1
 
         if has_matching:
             code_dict[code].increment_matching()
@@ -78,6 +66,7 @@ if __name__ == "__main__":
 
     result_dir = "result" 
     code_occr_file = "result/code_occr.csv" 
+    code_occr_dist_file = "result/code_occr_dist.csv" 
     term_occr_file = "result/term_occr.csv" 
 
     xml_dir = sys.argv[1]
@@ -101,15 +90,35 @@ if __name__ == "__main__":
 
     os.makedirs(result_dir, exist_ok=True)
 
-    # Print results in CSV form
+    # Sort the list according to matching occurrences
+    sorted_code_list = sorted(code_dict.items(), key=lambda item: item[1].matching_occurrences, reverse=True)
+    sorted_term_list = sorted(term_dict.items(), key=lambda item: item[1], reverse=True)
+    
+    # Print the results in CSV form
     with open(code_occr_file, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, ['code', 'display name', '# of occurrence', '# of match'])
         writer.writeheader()
-        writer.writerows({'code': key, 'display name': value.get_display_name(), '# of occurrence': value.get_total_occurrences(), '# of match': value.get_matching_occurrences()} for key, value in code_dict.items())
+        writer.writerows({
+            'code': code_val, 
+            'display name': code_info.display_name, 
+            '# of occurrence': code_info.total_occurrences, 
+            '# of match': code_info.matching_occurrences
+        } for (code_val, code_info) in sorted_code_list)
+
+    with open(code_occr_dist_file, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, ['code', 'display name', '# of occurrence', '# of match', 'distribution of terms'])
+        writer.writeheader()
+        writer.writerows({
+            'code': code_val, 
+            'display name': code_info.display_name, 
+            '# of occurrence': code_info.total_occurrences, 
+            '# of match': code_info.matching_occurrences, 
+            'distribution of terms': '\n'.join([f'{occr}:\t {term}' for (term, occr) in sorted(code_info.term_dist.items(), key=lambda item: item[1], reverse=True)])
+        } for (code_val, code_info) in sorted_code_list)
 
     with open(term_occr_file, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, ['term', '# of occurrence'])
         writer.writeheader()
-        writer.writerows({'term': key, '# of occurrence': value} for key, value in term_dict.items())
+        writer.writerows({'term': term, '# of occurrence': occr} for (term, occr) in sorted_term_list)
 
     print("Completed.")
