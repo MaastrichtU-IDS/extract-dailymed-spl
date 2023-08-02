@@ -1,10 +1,6 @@
-data/
-tmp/
-
-result.csv
-debug.txt
-
-.venv/
-venv/
-
 .DStore
+.venv/
+.vscode/
+venv/
+__pycache__/
+
