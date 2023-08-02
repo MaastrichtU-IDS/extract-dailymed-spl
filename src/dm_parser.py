@@ -28,13 +28,13 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):
         A progress bar.
 
     Args:
-                it: an iterable. anything that len() can be used on such as a list,
-                    a dict, or range().
-                prefix: text that appears to the left of the progress bar.
-                size: the size of the progress bar in characters.
-                out: the stream to write to.
+        it: an iterable. anything that len() can be used on such as a list,
+            a dict, or range().
+        prefix: text that appears to the left of the progress bar.
+        size: the size of the progress bar in characters.
+        out: the stream to write to.
 
-        Returns:
+    Returns:
         None
     """
     count = len(it)
@@ -74,10 +74,10 @@ def getMetadataFromFile(filepath: str) -> dict[str, FileMetadata]:
     Retrieves a metadata file at the specified filepath
 
     Args
-            filepath:str The metadata file in yaml format to read
+        filepath:str The metadata file in yaml format to read
 
     Returns
-            dict[str,FileMetadata]: A dictionary containing filenames and their metadata
+        dict[str,FileMetadata]: A dictionary containing filenames and their metadata
     """
 
     try:
@@ -133,7 +133,7 @@ def makeFileList():
         or generates from preset Dailymed file names.
 
     Returns:
-    dict:Dictionary containing FileMetadata descriptions of files
+        dict:Dictionary containing FileMetadata descriptions of files
     """
     files = {}
     args = argParser.parse_args()
@@ -170,7 +170,7 @@ def getPaths():
     * result_dir = a directory to contain the results of the application
 
     Returns:
-    dict:Dictionary containing application paths
+        dict:Dictionary containing application paths
     """
     args = argParser.parse_args()
     dirs = {}
@@ -195,12 +195,12 @@ def checkFiles(files: dict[str, FileMetadata]) -> dict[str, FileMetadata]:
         and if so, return the input dict with the read object.
 
     Args:
-            files: (Dict[str, FileMetadata]) : A dictionary with filename as string key\
-                and FileMetadata values
+        files: (Dict[str, FileMetadata]) : A dictionary with filename as string key\
+            and FileMetadata values
 
     Return:
-            Dict[str, FileMetadata]: A dictionary with filenames as string key \
-                and FileMetadata as values
+        Dict[str, FileMetadata]: A dictionary with filenames as string key \
+            and FileMetadata as values
     """
     argParser.parse_args()
     paths = getPaths()
@@ -265,10 +265,10 @@ def computeMD5Hash(filepath: str):
     Open,close, read file and calculate MD5 on its contents
 
     Args:
-            filepath (str): The full path to the file to compute the hash.
+        filepath (str): The full path to the file to compute the hash.
 
     Return:
-            str: The MD5 hash
+        str: The MD5 hash
     """
     with open(filepath, "rb") as f:
         md5_returned = hashlib.md5(f.read()).hexdigest()
@@ -283,10 +283,11 @@ def download(files: dict[str, FileMetadata]) -> dict[str, FileMetadata]:
     we force re-download
 
     Args:
-            files: a dictionary comprised of filename and their FileMetadata
+        files: (Dict[str, FileMetadata]) : A dictionary with filename as string key\
+            and FileMetadata values
 
     Return:
-            dict[str, FileMetadata] Updated files and their metadata
+        dict[str, FileMetadata] Updated files and their metadata
     """
     paths = getPaths()
 
@@ -353,10 +354,22 @@ def download(files: dict[str, FileMetadata]) -> dict[str, FileMetadata]:
     return files
 
 
-# Each release zip file contains a set of SPL specific zip files.
-# Each SPL contains one xml file.
-# This function will extract all XML files to the extraction directory
 def extract(files):
+    """
+    This function will extract all XML files contained in zip files
+      to the extraction directory
+
+    Each release zip file contains a set of SPL specific zip files.
+    Within each SPL zip file, there contains one xml file. We then
+    extract this xml file as a gzipped file into the target directory
+
+    Args:
+        files: (Dict[str, FileMetadata]) : A dictionary with filename as string key\
+            and FileMetadata values
+
+    Return:
+        dict[str, FileMetadata] A dictionary of gzipped XML files and their metadata
+    """
     paths = getPaths()
     paths["download_dir"]
     extraction_dir = paths["extraction_dir"]
@@ -414,6 +427,17 @@ def extract(files):
 
 
 def process(xml_files):
+    """
+    This function will process XML files to extract the indication section
+    and produce a CSV file with the SetId, XMLId, Version#, length of text \
+    and the indication section
+
+    Args:
+        files: (Dict[str, FileMetadata]) : A dictionary with xml files as string key\
+            and FileMetadata values
+
+    """
+
     paths = getPaths()
     extraction_dir = paths["extraction_dir"]
     result_dir = paths["result_dir"]
@@ -509,7 +533,8 @@ if __name__ == "__main__":
         "-s",
         "--files",
         default="prescription",
-        help="Specify a comma-separated list of the files to download/process. \
+        help="Specify a comma-separated list of the files to download/process, or \
+            indicate to process prescription or otc subsets, or both. \
             options: all|prescription|otc",
     )
     argParser.add_argument(
