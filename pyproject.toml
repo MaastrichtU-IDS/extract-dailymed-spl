@@ -17,6 +17,7 @@ dependencies = [
     "requests",
     "lxml",
     "beautifulsoup4",
+    "pyyaml"
 ]
 
 
