@@ -22,11 +22,11 @@ pip install -e .
 With hatch
 
 ```bash
-hatch run python dm_parser.py
+hatch run python src/dm_parser.py
 ```
 
 Without hatch
 
 ```bash
-python dm_parser.py
+python src/dm_parser.py
 ```
