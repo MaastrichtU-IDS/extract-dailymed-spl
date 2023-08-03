@@ -471,26 +471,20 @@ def process(xml_files):
             for section in sections:
                 for code in section.find_all("code", attrs={"code": "34067-9"}):
                     # Replace the matching sequences with a single newline
-                    # [^.]*\b(treatment|abnormal)\b[^.]*\.
-                    text = re.sub(r"(\s){2,}", "\n", section.text.strip())
-
-                    # indication = ' '.join(section.text.split())
+                    text = "###\n".join(section.text)
                     row = {
                         "set_id": set_id,
                         "xml_id": xml_id,
                         "version_number": version_number,
+                        "type": "indication",
                         "length": len(text),
-                        "indication": text,
+                        "text": text.split(),
                     }
-                    myhash = hash(yaml.dump(row))
-                    if myhash not in hashes:  # do not include duplicates
-                        indications.append(row)
-                        hashes[hash] = True
-            # if i == 2: break
+                    indications.append(row)
 
     # Creating a csv dict writer object
     with open(f"{result_dir}/indications.csv", "w") as csvfile:
-        fields = ["set_id", "xml_id", "version_number", "length", "indication"]
+        fields = ["set_id", "xml_id", "version_number", "type", "length", "text"]
         writer = csv.DictWriter(csvfile, fieldnames=fields, delimiter=",")
         writer.writeheader()
         writer.writerows(indications)
