@@ -4,9 +4,11 @@ Extracting the indication from the SPLs (Structured Product Labeling) that are c
 
 ## Clone
 
-This project has a `git submodule` where the data are stored on a hugging face git repository. Use the following to automatically extract and set up the submodule when cloning the repository
+This project has a `git submodule` where the data are stored on a hugging face git repository. This module uses git large file storage.
+Use the following to automatically extract and set up the submodule when cloning the repository
 
 ```
+git lfs install
 git clone --recurse-submodules https://github.com/MaastrichtU-IDS/extract-dailymed-spl
 ```
 
