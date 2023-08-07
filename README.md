@@ -9,6 +9,8 @@ Use the following to automatically extract and set up the submodule when cloning
 
 ```
 git lfs install
+```
+```
 git clone --recurse-submodules https://github.com/MaastrichtU-IDS/extract-dailymed-spl
 ```
 
