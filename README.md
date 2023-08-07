@@ -2,6 +2,22 @@
 
 Extracting the indication from the SPLs (Structured Product Labeling) that are coming from DailyMed dataset.
 
+## Clone
+
+This project has a `git submodule` where the data are stored on a hugging face git repository. Use the following to automatically extract and set up the submodule when cloning the repository
+
+```
+git clone --recurse-submodules https://github.com/MaastrichtU-IDS/extract-dailymed-spl
+```
+
+
+Otherwise, you can initialize, fetch and checkout the nested submodule with the following command
+
+```
+git submodule update --init --recursive
+```
+
+
 ## Install
 
 Create and activate virtual env
