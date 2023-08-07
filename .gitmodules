@@ -1,0 +1,3 @@
+[submodule "hf-dailymed-annotations"]
+	path = hf-dailymed-annotations
+	url = https://huggingface.co/datasets/um-ids/dailymed-annotations
