@@ -1,6 +1,7 @@
 .DStore
 .venv/
 .vscode/
+data/
 venv/
 __pycache__/
 

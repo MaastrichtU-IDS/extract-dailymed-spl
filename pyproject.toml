@@ -14,10 +14,11 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "requests",
-    "lxml",
-    "beautifulsoup4",
-    "pyyaml"
+    "pandas",
+    "sentence-transformers",
+    "scikit-learn",
+    "plotly",
+    "kaleido"
 ]
 
 
