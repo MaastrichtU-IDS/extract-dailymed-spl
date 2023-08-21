@@ -17,7 +17,7 @@ dependencies = [
     "requests",
     "lxml",
     "beautifulsoup4",
-    "pyyaml"
+    "pyyaml",
     "pandas",
     "sentence-transformers",
     "scikit-learn",
