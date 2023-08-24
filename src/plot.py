@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.manifold import TSNE
 import plotly.express as px
 import csv
-import sys
+import argparse
 
 def plot_tsne(sentences, out_file):
     print("Generating sentence embeddings...")
@@ -33,14 +33,12 @@ def load_indications(filename):
     return data
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit(f"Usage: {sys.argv[0]} [input_csv_file] [output_image_file]") 
+    parser = argparse.ArgumentParser(description="Generate t-SNE plot for indication data.")
+    parser.add_argument("input_csv_file", type=str, help="Path to the input CSV file.")
+    parser.add_argument("output_image_file", type=str, help="Path to the output image file.")
+    args = parser.parse_args()
 
-    input_csv = sys.argv[1]
-    output_image = sys.argv[2]
-
-    indications = load_indications(input_csv)
-    
-    plot_tsne(indications, output_image)
+    indications = load_indications(args.input_csv_file)
+    plot_tsne(indications, args.output_image_file)
 
     print("Completed")

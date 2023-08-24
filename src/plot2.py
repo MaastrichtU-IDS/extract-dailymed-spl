@@ -4,8 +4,8 @@ from sentence_transformers import SentenceTransformer
 from sklearn.manifold import TSNE
 import plotly.express as px
 import csv
-import sys
 import multiprocessing
+import argparse
 
 def process_data(sentences, tsne_embeddings):
     model = SentenceTransformer('distilbert-base-nli-mean-tokens')
@@ -58,15 +58,12 @@ def plot_tsne_multiprocess(input_csv1, input_csv2, out_file):
     print(f"Plot saved as '{out_file}'")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        sys.exit(f"Usage: {sys.argv[0]} [input_csv_file1] [input_csv_file2] [output_image_file]") 
-
-    input_csv1 = sys.argv[1]
-    input_csv2 = sys.argv[2]
-    output_image = sys.argv[3]
+    parser = argparse.ArgumentParser(description="Generate t-SNE plots from input CSV files.")
+    parser.add_argument("input_csv_file1", type=str, help="Path to the first input CSV file.")
+    parser.add_argument("input_csv_file2", type=str, help="Path to the second input CSV file.")
+    parser.add_argument("output_image_file", type=str, help="Path to the output image file.")
+    args = parser.parse_args()
 
     print("Starting t-SNE Visualization")
-
-    plot_tsne_multiprocess(input_csv1, input_csv2, output_image)
-
+    plot_tsne_multiprocess(args.input_csv_file1, args.input_csv_file2, args.output_image_file)
     print("Completed.")

@@ -1,7 +1,7 @@
 import re
 import csv
-import sys
 import os
+import argparse
 from lxml import etree
 from collections import defaultdict
 
@@ -61,17 +61,19 @@ def explore(xmlfile, terms, code_dict, term_dict):
         code_dict[code].increment_total()
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit(f"Right usage: {sys.argv[0]} [xml file directory] [terms file]") 
+    parser = argparse.ArgumentParser(description="Explore XML files and generate statistical data.")
+    parser.add_argument("xml_directory", type=str, help="Path to the directory containing XML files.")
+    parser.add_argument("terms_file", type=str, help="Path to the file containing terms.")
+    args = parser.parse_args()
 
-    result_dir = "result" 
-    code_occr_file = "result/code_occr.csv" 
-    code_occr_dist_file = "result/code_occr_dist.csv" 
-    term_occr_file = "result/term_occr.csv" 
+    result_dir = "result"
+    code_occr_file = os.path.join(result_dir, "code_occr.csv")
+    code_occr_dist_file = os.path.join(result_dir, "code_occr_dist.csv")
+    term_occr_file = os.path.join(result_dir, "term_occr.csv")
 
-    xml_dir = sys.argv[1]
-    terms_fname = sys.argv[2]
-    
+    xml_dir = args.xml_directory
+    terms_fname = args.terms_file
+
     terms = []
     with open(terms_fname) as file:
         terms = [line.rstrip() for line in file]
@@ -84,8 +86,8 @@ if __name__ == "__main__":
     for xmlfile in [os.path.join(xml_dir, f) for f in os.listdir(xml_dir)]:
         explore(xmlfile, terms, code_dict, term_dict)
         num_files += 1
-    
-    print(f"Completed. Total of {num_files} file scanned.")
+
+    print(f"Completed. Total of {num_files} file(s) scanned.")
     print(f'Writing the statistical data in the folder "{result_dir}"...')
 
     os.makedirs(result_dir, exist_ok=True)
