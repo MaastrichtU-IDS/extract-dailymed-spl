@@ -1,4 +1,4 @@
-import sys
+import argparse
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -26,26 +26,25 @@ def create_gold_standard_dataset(df, similarity_threshold):
     df.drop(index=selected_indices, inplace=True)
     
 if __name__ == "__main__":
-    if len(sys.argv) != 4:  
-        sys.exit(f"Right usage: {sys.argv[0]} [in: in.csv] [in: similarity_threshold] [out: out.csv]") 
-
-    input_filename = sys.argv[1]
-    similarity_threshold = float(sys.argv[2])
-    output_filename = sys.argv[3]
+    parser = argparse.ArgumentParser(description="Generate a gold standard dataset by removing similar paragraphs from a CSV file.")
+    parser.add_argument("input_csv", type=str, help="Path to the input CSV file.")
+    parser.add_argument("similarity_threshold", type=float, help="Threshold for cosine similarity.")
+    parser.add_argument("output_csv", type=str, help="Path to the output CSV file.")
+    args = parser.parse_args()
 
     print("Loading CSV file...")
-    df = pd.read_csv(input_filename)
+    df = pd.read_csv(args.input_csv)
     total_paragraphs = len(df)
 
     print("Applying gold standard dataset creation...")
-    create_gold_standard_dataset(df, similarity_threshold)
+    create_gold_standard_dataset(df, args.similarity_threshold)
 
     num_retained_paragraphs = len(df)
     num_removed_paragraphs = total_paragraphs - num_retained_paragraphs
     percent_removed = (num_removed_paragraphs / total_paragraphs) * 100
 
     print("Writing dissimilar paragraphs to output CSV...")
-    df.to_csv(output_filename, index=False)
+    df.to_csv(args.output_csv, index=False)
 
     print("\nSummary:")
     print(f"Total paragraphs: {total_paragraphs}")
