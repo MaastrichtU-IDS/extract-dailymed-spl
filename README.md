@@ -1,4 +1,4 @@
-# Extract DailyMed SPL
+# 💊 Extract DailyMed SPL
 
 Extracting the indication from the SPLs (Structured Product Labeling) that are coming from DailyMed dataset.
 
