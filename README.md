@@ -61,14 +61,6 @@ options:
                         Extract XML files from download files
 ```
 
-With hatch
-
-```bash
-hatch run python src/dm_parser.py
-```
-
-Without hatch
-
 ```bash
 python src/dm_parser.py
 ```
